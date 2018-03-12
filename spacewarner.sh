@@ -14,6 +14,7 @@
 
 cfgMailTo="hachre@dynaloop.com"
 cfgMailFrom="solaris@dynaloop.com"
+cfgMailFromName="Solaris"
 cfgMailFromHost="solaris.dynaloop.com"
 cfgMailServer="orion.dynaloop.net"
 cfgMailUser="server_mail@dynaloop.com"
@@ -45,7 +46,7 @@ function checks {
 checks
 
 function mail {
-	echo -e "Subject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost $cfgMailTo
+	echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost $cfgMailTo
 	return $?
 }
 
