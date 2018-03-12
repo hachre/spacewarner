@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: $version
+# Version: 1.2.20180312.4
 
 
 #
