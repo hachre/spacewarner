@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.2.20180312.4
+# Version: 1.2.20180312.5
 
 
 #
@@ -47,7 +47,7 @@ checks
 
 function mail {
 	# add -P after --auth=on to enable debugging msmtp
-	echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost --auth=on $cfgMailTo
+	echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost --tls=on --tls-certcheck=off --auth=on $cfgMailTo
 	return $?
 }
 
