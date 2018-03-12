@@ -4,8 +4,8 @@
 # Low Free Disk Space Warning System
 #
 
-# Author: code@hach.re
-# Version: 1.0.20180312.1
+# URL: https://github.com/hachre/spacewarner
+# Version: $version
 
 
 #
@@ -46,7 +46,8 @@ function checks {
 checks
 
 function mail {
-	echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost $cfgMailTo
+	# add -P after --auth=on to enable debugging msmtp
+	echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost --auth=on $cfgMailTo
 	return $?
 }
 
