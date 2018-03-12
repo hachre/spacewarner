@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.2.20180312.5
+# Version: 1.3.20180312.6
 
 
 #
@@ -27,8 +27,8 @@ cfgWarnBelow="10"
 #
 
 function help {
-	echo "Usage: $0 [--mailtest|--verbose]"
-	echo " --verbose:  Tells everything that's happening."
+	echo "Usage: $0 [--mailtest|--cron]"
+	echo " --cron:     Omits all output."
 	echo " --mailtest: Send a test mail."
 }
 if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
@@ -78,7 +78,7 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 		ok="[BAD]"
 		alarm $source $percentFree
 	fi
-	if [ "$1" == "--verbose" ]; then
+	if [ "$1" != "--cron" ]; then
 		echo "$ok $source: ${percentFree}% (size: $size, avail: $avail)"
 	fi
 done
