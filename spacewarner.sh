@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.5.20180313.3
+# Version: 1.5.20180313.4
 
 
 #
@@ -50,8 +50,8 @@ function parameterChecks {
 		echo "Error: Config value 'cfgMailService' has to be set to either 'msmtp' or 'ssmtp'."
 		exit 1
 	fi
-	if [ "$cfgMailService" != "msmtp" ] && [ "$cfgMailService" != "ssmtp" ]; then
-		echo "Error: Config value 'cfgMailService' has to be set to either 'msmtp' or 'ssmtp'."
+	if [ "$cfgMailService" != "msmtp" ] && [ "$cfgMailService" != "ssmtp" ] && [ "$cfgMailService" != "none" ]; then
+		echo "Error: Config value 'cfgMailService' has to be set to 'msmtp', 'ssmtp' or 'none'."
 		exit 1
 	fi
 	if [ -z "$cfgMailTo" ]; then
@@ -116,8 +116,8 @@ function mail {
 	if [ "$cfgMailService" == "none" ]; then
 		return 0
 	fi
-	echo "Warning: 'cfgMailService' has not been set correctly. Unknown value: '$cfgMailService' ignored."
-	return 0
+	echo "Error 1337: This point should not be reached. Please report as a bug together with configuration options and parameters!"
+	exit 1337
 }
 
 function mailtest {
@@ -126,7 +126,7 @@ function mailtest {
 		mail "Low Disk Space Warner has successfully reached you!"
 		exit $?
 	fi
-	echo "Error: 'cfgMailService' has been set to 'none' or an unknown value. Mail warnings are disabled."
+	echo "Error: 'cfgMailService' has been set to 'none'. Mail warnings are disabled and cannot be tested."
 	exit 1
 }
 if [ "$1" == "--mailtest" ] || [ "$1" == "--testmail" ]; then
