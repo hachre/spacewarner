@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.4.20180313.1
+# Version: 1.5.20180313.3
 
 
 #
@@ -23,6 +23,7 @@ cfgMailFromName="Solaris"
 # Required for just msmtp, leave empty or comment out for ssmtp
 cfgMailFromHost="solaris.dynaloop.com"
 cfgMailServer="orion.dynaloop.net"
+cfgMailServerPort="587"
 cfgMailUser="server_mail@dynaloop.com"
 cfgMailPassFile="/root/.mailpass"
 
@@ -74,6 +75,10 @@ function parameterChecks {
 			echo "Error: Config value 'cfgMailServer' has to be set to a SMTP mail server hostname."
 			exit 1
 		fi
+		if [ -z "$cfgMailServerPort" ]; then
+			echo "Error: Config value 'cfgMailServerPort' has to be set to a SMTP mail server port."
+			exit 1
+		fi
 		if [ -z "$cfgMailUser" ]; then
 			echo "Error: Config value 'cfgMailUser' has to be set to a SMTP authentication username."
 			exit 1
@@ -101,7 +106,7 @@ parameterChecks $*
 function mail {
 	if [ "$cfgMailService" == "msmtp" ]; then
 		# add -P after --auth=on to enable debugging msmtp
-		echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost --tls=on --tls-certcheck=off --auth=on $cfgMailTo
+		echo -e "From: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | msmtp --host=$cfgMailServer --user=$cfgMailUser --passwordeval="cat $cfgMailPassFile" --from=$cfgMailFrom --domain=$cfgMailFromHost --tls=on --tls-certcheck=off --port=$cfgMailServerPort --auth=on $cfgMailTo
 		return $?
 	fi
 	if [ "$cfgMailService" == "ssmtp" ]; then
