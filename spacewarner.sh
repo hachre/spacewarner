@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.5.20180313.4
+# Version: 1.6.20180314.1
 
 
 #
@@ -13,7 +13,7 @@
 #
 
 # Supported services are "msmtp", "ssmtp" and "none"
-cfgMailService="msmtp"
+cfgMailService="none"
 
 # Required for both msmtp and ssmtp
 cfgMailTo="hachre@dynaloop.com"
@@ -110,7 +110,7 @@ function mail {
 		return $?
 	fi
 	if [ "$cfgMailService" == "ssmtp" ]; then
-		echo -e "To: $cfgMailTo\nFrom: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n$*" | ssmtp $cfgMailTo
+		echo -e "To: $cfgMailTo\nFrom: $cfgMailFromName <$cfgMailFrom>\nSubject: Low Disk Space Warning\n\n$*" | ssmtp $cfgMailTo
 		return $?
 	fi
 	if [ "$cfgMailService" == "none" ]; then
@@ -137,6 +137,37 @@ function alarm {
 	mail "Attention! Your volume '$1' has fallen under the warning threshold: It has ${2}% space free."
 }
 
+function normalizeUnits {
+	# initial value is a KB value (as delivered by df)
+	value="$1"
+
+	level=0
+	if [ ! -z "$2" ]; then
+		level="$2"
+	fi
+
+	unit="KB"
+	if [ "$level" == "1" ]; then
+		unit="MB"
+	fi
+	if [ "$level" == "2" ]; then
+		unit="GB"
+	fi
+	if [ "$level" == "3" ]; then
+		unit="TB"
+	fi
+
+	if [ "$1" -ge "1024" ]; then
+		let level=level+1
+		value=$(expr $value / 1024)
+	else
+		echo "$value $unit"
+		return
+	fi
+
+	normalizeUnits "$value" "$level"
+}
+
 prevIFS="$IFS"
 IFS="
 "
@@ -152,7 +183,9 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 		alarm $source $percentFree
 	fi
 	if [ "$1" != "--cron" ] && [ "$1" != "-c" ]; then
-		echo "$ok $source: ${percentFree}% (size: $size, avail: $avail)"
+		displaySize=$(normalizeUnits $size)
+		displayAvail=$(normalizeUnits $avail)
+		echo "$ok $source: ${percentFree}% free (size: $displaySize, avail: $displayAvail)"
 	fi
 done
 
