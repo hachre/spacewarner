@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.7.20180319.1
+# Version: 1.7.20180319.2
 
 
 #
@@ -165,10 +165,11 @@ function normalizeUnits {
 }
 
 function alarm {
+	volume=$1
 	freePercent=$2
 	size=$(normalizeUnits $3)
 	avail=$(normalizeUnits $4)
-	mail "One of your volumes has fallen below the warning threshold!\n\nHostname: $(hostname)\nVolume: $1\nSize: $size\nFree: $4 (${freePercent}%)"
+	mail "One of your volumes has fallen below the warning threshold!\n\nHostname: $(hostname)\nVolume: $volume\nSize: $size\nFree: $avail (${freePercent}%)"
 }
 
 prevIFS="$IFS"
