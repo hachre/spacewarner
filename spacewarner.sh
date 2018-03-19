@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.6.20180314.1
+# Version: 1.7.20180319.1
 
 
 #
@@ -133,10 +133,6 @@ if [ "$1" == "--mailtest" ] || [ "$1" == "--testmail" ]; then
 	mailtest
 fi
 
-function alarm {
-	mail "Attention! Your volume '$1' has fallen under the warning threshold: It has ${2}% space free."
-}
-
 function normalizeUnits {
 	# initial value is a KB value (as delivered by df)
 	value="$1"
@@ -168,6 +164,13 @@ function normalizeUnits {
 	normalizeUnits "$value" "$level"
 }
 
+function alarm {
+	freePercent=$2
+	size=$(normalizeUnits $3)
+	avail=$(normalizeUnits $4)
+	mail "One of your volumes has fallen below the warning threshold!\n\nHostname: $(hostname)\nVolume: $1\nSize: $size\nFree: $4 (${freePercent}%)"
+}
+
 prevIFS="$IFS"
 IFS="
 "
@@ -178,14 +181,16 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 	avail=$(echo $entry | awk '{ print $3 }')
 	percentFree=$(expr $avail \* 100 / $size)
 	ok=" [OK]"
+
+	displaySize=$(normalizeUnits $size)
+	displayAvail=$(normalizeUnits $avail)
+
 	if [ "$percentFree" -le "$cfgWarnBelow"	]; then
 		ok="[BAD]"
-		alarm $source $percentFree
+		alarm $source $percentFree $size $avail
 	fi
 	if [ "$1" != "--cron" ] && [ "$1" != "-c" ]; then
-		displaySize=$(normalizeUnits $size)
-		displayAvail=$(normalizeUnits $avail)
-		echo "$ok $source: ${percentFree}% free (size: $displaySize, avail: $displayAvail)"
+		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
 	fi
 done
 
