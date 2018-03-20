@@ -5,12 +5,15 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.7.20180319.2
+# Version: 1.8.20180320.1
 
 
 #
 # Configuration
 #
+
+# If prefer inline configuration options, comment out the following line.
+cfgConfigLocation="/etc/spacewarner.conf"
 
 # Supported services are "msmtp", "ssmtp" and "none"
 cfgMailService="none"
@@ -30,21 +33,40 @@ cfgMailPassFile="/root/.mailpass"
 # General configuration options
 cfgWarnBelow="10"
 
-
 #
 # Code
 #
 
 function help {
-	echo "Usage: $0 [--mailtest|--cron]"
-	echo " --cron:     Omits all output."
+	echo "Usage: $0 [--help|--cron|--mailtest]"
+	echo ""
+	echo "The default is to show a list of all your drives and whether they are considered in a good or bad state."
+	echo "Use '--cron' to disable any normal output and enable sending of warning mails instead."
+	echo ""
+	echo " --cron:     Disables all normal output. Enables sending warning mails."
 	echo " --mailtest: Send a test mail."
 }
 
 function parameterChecks {
-	if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+	if [ "$1" == "--help" ]; then
 		help
 		exit 127
+	fi
+	if [ ! -z "$1" ] && [ "$1" != "--cron" ] && [ "$1" != "--mailtest" ]; then
+		help
+		echo -e "\nError: Unknown parameter '$1'. See usage help above."
+		exit 127
+	fi
+	if [ ! -z "$cfgConfigLocation" ]; then
+		if [ ! -f "$cfgConfigLocation" ]; then
+			echo "Error: Config file at '$cfgConfigLocation' can not be read."
+			exit 1
+		fi
+		source "$cfgConfigLocation"
+		if [ "$?" != "0" ]; then
+			echo "Error: There were errors while reading the configuration file from '$cfgConfigLocation'."
+			exit 1
+		fi
 	fi
 	if [ -z "$cfgMailService" ]; then
 		echo "Error: Config value 'cfgMailService' has to be set to either 'msmtp' or 'ssmtp'."
@@ -89,14 +111,14 @@ function parameterChecks {
 		fi
 		which msmtp 1>/dev/null 2>&1
 		if [ "$?" != "0" ]; then
-			echo "Error: Config value 'cfgMailService' defines 'msmtp' as your desired service, but it is not installed and not in PATH."
+			echo "Error: Config value 'cfgMailService' defines 'msmtp' as your desired service, but it is not installed or not in \$PATH."
 			exit 1
 		fi
 	fi
 	if [ "$cfgMailService" == "ssmtp" ]; then
 		which ssmtp 1>/dev/null 2>&1
 		if [ "$?" != "0" ]; then
-			echo "Error: Config value 'cfgMailService' defines 'ssmtp' as your desired service, but it is not installed and not in PATH."
+			echo "Error: Config value 'cfgMailService' defines 'ssmtp' as your desired service, but it is not installed or not in \$PATH."
 			exit 1
 		fi
 	fi
@@ -188,9 +210,11 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 
 	if [ "$percentFree" -le "$cfgWarnBelow"	]; then
 		ok="[BAD]"
-		alarm $source $percentFree $size $avail
+		if [ "$1" == "--cron" ]; then
+			alarm $source $percentFree $size $avail
+		fi
 	fi
-	if [ "$1" != "--cron" ] && [ "$1" != "-c" ]; then
+	if [ "$1" != "--cron" ]; then
 		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
 	fi
 done
