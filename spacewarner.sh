@@ -1,18 +1,20 @@
 #!/bin/bash
 
 #
-# Low Free Disk Space Warning System
+# SpaceWarner
 #
 
+# Description: Warns when disk space is dangerously low and sends notification mails.
+# License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.9.20180320.3
+# Version: 1.9.20180320.4
 
 
 #
 # Configuration
 #
 
-# If prefer inline configuration options, comment out the following line.
+# If you prefer inline configuration options, comment out the following line.
 cfgConfigLocation="/etc/spacewarner.conf"
 
 # Supported services are "msmtp", "ssmtp" and "none"
