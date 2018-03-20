@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.8.20180320.2
+# Version: 1.9.20180320.3
 
 
 #
@@ -32,7 +32,8 @@ cfgMailPassFile="/root/.mailpass"
 
 # General configuration options
 cfgWarnBelow="10"
-cfgIgnoredDevices="/dev/hdb8 /dev/hdb9 home"
+cfgIgnoredDevices=""
+cfgHiddenDevices=""
 
 #
 # Code
@@ -210,6 +211,9 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 
 	ok=""
 
+	if [[ $cfgHiddenDevices == *$source* ]]; then
+		continue
+	fi
 	if [[ $cfgIgnoredDevices == *$source* ]]; then
 		ok="[IGN]"
 	fi
