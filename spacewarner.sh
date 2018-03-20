@@ -5,7 +5,7 @@
 #
 
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.8.20180320.1
+# Version: 1.8.20180320.2
 
 
 #
@@ -32,6 +32,7 @@ cfgMailPassFile="/root/.mailpass"
 
 # General configuration options
 cfgWarnBelow="10"
+cfgIgnoredDevices="/dev/hdb8 /dev/hdb9 home"
 
 #
 # Code
@@ -203,18 +204,25 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 	size=$(echo $entry | awk '{ print $2 }')
 	avail=$(echo $entry | awk '{ print $3 }')
 	percentFree=$(expr $avail \* 100 / $size)
-	ok=" [OK]"
-
+	
 	displaySize=$(normalizeUnits $size)
 	displayAvail=$(normalizeUnits $avail)
 
-	if [ "$percentFree" -le "$cfgWarnBelow"	]; then
+	ok=""
+
+	if [[ $cfgIgnoredDevices == *$source* ]]; then
+		ok="[IGN]"
+	fi
+	if [ "$percentFree" -le "$cfgWarnBelow"	] && [ -z "$ok" ]; then
 		ok="[BAD]"
 		if [ "$1" == "--cron" ]; then
 			alarm $source $percentFree $size $avail
 		fi
 	fi
 	if [ "$1" != "--cron" ]; then
+		if [ -z "$ok" ]; then
+			ok="[ OK]"
+		fi
 		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
 	fi
 done
