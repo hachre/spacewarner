@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.9.20180320.4
+# Version: 1.9.20180422.1
 
 
 #
@@ -206,8 +206,14 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 	source=$(echo $entry | awk '{ print $1 }')
 	size=$(echo $entry | awk '{ print $2 }')
 	avail=$(echo $entry | awk '{ print $3 }')
-	percentFree=$(expr $avail \* 100 / $size)
-	
+
+  expr $size \* 1 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		# Parsing of size didn't work (most likely because of spaces in the path) skip this entry
+		continue
+	fi
+
+	percentFree=$(expr $avail \* 100 / $size)	
 	displaySize=$(normalizeUnits $size)
 	displayAvail=$(normalizeUnits $avail)
 
