@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.9.20180422.1
+# Version: 1.10.20180525.1
 
 
 #
@@ -35,7 +35,7 @@ cfgMailPassFile="/root/.mailpass"
 # General configuration options
 cfgWarnBelow="10"
 cfgIgnoredDevices=""
-cfgHiddenDevices=""
+cfgHiddenDevices="/dev/loop*"
 
 #
 # Code
@@ -198,6 +198,32 @@ function alarm {
 	mail "One of your volumes has fallen below the warning threshold!\n\nHostname: $(hostname)\nVolume: $volume\nSize: $size\nFree: $avail (${freePercent}%)"
 }
 
+# Call through 'contains "$haystack" "$needle"'
+function contains {
+	haystack="$1"
+	needle="$2"
+
+	IFS=" "
+
+	for entry in $haystack; do
+		# Attempt to match exactly. (needle '/dev/loop4' doesn't match against haystack entry '/dev/loop')
+		if [ "$needle" == "$entry" ]; then
+			return 0
+		fi
+		
+		# If haystack entry ends on *, match in reverse (needle '/dev/loop4' matches haystack entry '/dev/loop')
+		if [ "${entry:${#entry}-1:1}" == "*" ]; then
+			entry="${entry:0:-1}"
+			if [[ $needle == *$entry* ]]; then
+				return 0
+			fi
+		fi
+	done
+
+	# If nothing matches, return 1
+	return 1
+}
+
 prevIFS="$IFS"
 IFS="
 "
@@ -219,12 +245,9 @@ for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); 
 
 	ok=""
 
-	if [[ $cfgHiddenDevices == *$source* ]]; then
-		continue
-	fi
-	if [[ $cfgIgnoredDevices == *$source* ]]; then
-		ok="[IGN]"
-	fi
+	contains "$cfgHiddenDevices" "$source" && continue
+	contains "$cfgIgnoredDevices" "$source" && ok="[IGN]"
+
 	if [ "$percentFree" -le "$cfgWarnBelow"	] && [ -z "$ok" ]; then
 		ok="[BAD]"
 		if [ "$1" == "--cron" ]; then
