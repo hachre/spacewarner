@@ -109,6 +109,11 @@ function parameterChecks {
 			exit 1
 		fi
 	fi
+	which mktemp 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: Required tool 'mktemp' is not installed or not in \$PATH."
+		exit 1
+	fi
 }
 parameterChecks $*
 
