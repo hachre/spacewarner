@@ -7,38 +7,14 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.11.20191117.2
+# Version: 1.12.20191117.3
 
 
 #
 # Configuration
 #
 
-# If you prefer inline configuration options, comment out the following line.
 cfgConfigLocation="/etc/spacewarner.conf"
-
-# Supported services are "msmtp", "ssmtp" and "none"
-cfgMailService="none"
-
-# Required for both msmtp and ssmtp
-cfgMailTo="hachre@dynaloop.com"
-cfgMailFrom="solaris@dynaloop.com"
-cfgMailFromName="Solaris"
-
-# Required for just msmtp, leave empty or comment out for ssmtp
-cfgMailFromHost="solaris.dynaloop.com"
-cfgMailServer="orion.dynaloop.net"
-cfgMailServerPort="587"
-cfgMailUser="server_mail@dynaloop.com"
-cfgMailPassFile="/root/.mailpass"
-
-# General configuration options
-# Ignored means we will show the fs, but ignore its space stats and never raise an alarm
-# Hidden means we will not even show the fs (stronger than Ignore)
-cfgWarnBelow="10"
-cfgIgnoredDevices=""
-cfgHiddenDevices="/dev/loop*"
-cfgHideZFS="true"
 
 #
 # Code
@@ -75,8 +51,12 @@ function parameterChecks {
 			exit 1
 		fi
 	fi
-	if [ -z "$cfgHideZFS" ]; then
-		echo "Error: Config value 'cfgHideZFS' has to be set to either 'true' or 'false'."
+	if [ -z "$cfgHideZFSDevices" ]; then
+		echo "Error: Config value 'cfgHideZFSDevices' has to be set to either 'true' or 'false'."
+		exit 1
+	fi
+	if [ -z "$cfgHideLoopDevices" ]; then
+		echo "Error: Config value 'cfgHideLoopDevices' has to be set to either 'true' or 'false'."
 		exit 1
 	fi
 	if [ -z "$cfgMailService" ]; then
@@ -231,9 +211,12 @@ function contains {
 	return 1
 }
 
-dfTransform=""
-if [ "$cfgHideZFS" == "true" ]; then
-	dfTransform="-x zfs"
+dfTransform="$cfgCustomDFParams"
+if [ "$cfgHideZFSDevices" == "true" ]; then
+	dfTransform="$dfTransform -x zfs"
+fi
+if [ "$cfgHideLoopDevices" == "true" ]; then
+	dfTransform="$dfTransform -x loop"
 fi
 
 tmpfile=$(mktemp)
