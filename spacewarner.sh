@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.13.20191117.8
+# Version: 1.13.20191118.1
 
 
 #
@@ -109,9 +109,26 @@ function parameterChecks {
 			exit 1
 		fi
 	fi
+
+	# Check whether the tools we need are all available
 	which mktemp 1>/dev/null 2>&1
 	if [ "$?" != "0" ]; then
 		echo "Error: Required tool 'mktemp' is not installed or not in \$PATH."
+		exit 1
+	fi
+	which awk 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: Required tool 'awk' is not installed or not in \$PATH."
+		exit 1
+	fi
+	which cut 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: Required tool 'cut' is not installed or not in \$PATH."
+		exit 1
+	fi
+	which expr 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: Required tool 'expr' is not installed or not in \$PATH."
 		exit 1
 	fi
 }
@@ -265,18 +282,18 @@ for entry in $(cat $tmpfile); do
 
 	# Execute ignore & hide params
 	contains "$cfgHiddenDevices" "$source" && continue
-	contains "$cfgIgnoredDevices" "$source" && ok="[IGN]"
+	contains "$cfgIgnoredDevices" "$source" && ok="[IGNR]"
 
 	# Decide whether this is an entry that has fallen below the threshold
 	if [ "$percentFree" -le $(getCustomWarnLevel "$source") ] && [ -z "$ok" ]; then
-		ok="[BAD]"
+		ok="[FAIL]"
 		if [ "$1" == "--cron" ]; then
 			alarm $source $percentFree $size $avail
 		fi
 	fi
 	if [ "$1" != "--cron" ]; then
 		if [ -z "$ok" ]; then
-			ok="[ OK]"
+			ok="[ OK ]"
 		fi
 		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
 	fi
