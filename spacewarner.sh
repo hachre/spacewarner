@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.13.20191118.1
+# Version: 1.14.20191118.2
 
 
 #
@@ -229,7 +229,7 @@ function contains {
 	return 1
 }
 
-function getCustomWarnLevel() {
+function getWarnLevel() {
 	# If we don't have a cfgCustomWarnBelow variable, immediately return default warning threshold
 	if [ -z "$cfgCustomWarnBelow" ]; then
 		echo $cfgWarnBelow
@@ -250,14 +250,41 @@ function getCustomWarnLevel() {
 	echo "$cfgWarnBelow"
 }
 
+# Usage: renderOutput device, size (in KB), avail (in KB)
+function renderOutput() {
+	source="$1"
+	size="$2"
+	avail="$3"
+	ok=""
+
+	# Prepare human-readable output
+	percentFree=$(expr $avail \* 100 / $size)
+	displaySize=$(normalizeUnits $size)
+	displayAvail=$(normalizeUnits $avail)
+
+	# Execute ignore & hide params
+	contains "$cfgHiddenDevices" "$source" && return
+	contains "$cfgIgnoredDevices" "$source" && ok="[IGNR]"
+
+	# Decide whether this is an entry that has fallen below the threshold
+	if [ "$percentFree" -le $(getWarnLevel "$source") ] && [ -z "$ok" ]; then
+		ok="[FAIL]"
+		if [ "$1" == "--cron" ]; then
+			alarm $source $percentFree $size $avail
+		fi
+	fi
+	if [ "$1" != "--cron" ]; then
+		if [ -z "$ok" ]; then
+			ok="[ OK ]"
+		fi
+		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
+	fi
+}
+
 # Prepare execution
 dfTransform="$cfgCustomDFParams"
-if [ "$cfgHideZFSDevices" == "true" ]; then
-	dfTransform="$dfTransform -x zfs"
-fi
-
 tmpfile=$(mktemp)
-df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail | tail -n+2 > $tmpfile
+df -x tmpfs -x devtmpfs -x zfs $dfTransform --output=source,size,avail | tail -n+2 > $tmpfile
 
 # Execute iteration through df to find filesystems to check
 prevIFS="$IFS"
@@ -274,30 +301,43 @@ for entry in $(cat $tmpfile); do
 		continue
 	fi
 
-	percentFree=$(expr $avail \* 100 / $size)
-	displaySize=$(normalizeUnits $size)
-	displayAvail=$(normalizeUnits $avail)
-
-	ok=""
-
-	# Execute ignore & hide params
-	contains "$cfgHiddenDevices" "$source" && continue
-	contains "$cfgIgnoredDevices" "$source" && ok="[IGNR]"
-
-	# Decide whether this is an entry that has fallen below the threshold
-	if [ "$percentFree" -le $(getCustomWarnLevel "$source") ] && [ -z "$ok" ]; then
-		ok="[FAIL]"
-		if [ "$1" == "--cron" ]; then
-			alarm $source $percentFree $size $avail
-		fi
-	fi
-	if [ "$1" != "--cron" ]; then
-		if [ -z "$ok" ]; then
-			ok="[ OK ]"
-		fi
-		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
-	fi
+	renderOutput "$source" "$size" "$avail"
 done
-rm $tmpfile
-
 IFS="$prevIFS"
+rm "$tmpfile"
+
+function runZFS() {
+	# Check for ZFS support.
+	which zpool 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: You've requested ZFS support via 'cfgHideZFSDevices' 'false', but 'zpool' isn't installed or not in PATH."
+		echo "Please make 'zpool' available or disable ZFS support by setting 'cfgHideZFSDevices' to 'true'."
+		return 1
+	fi
+	which zfs 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Error: You've requested ZFS support via 'cfgHideZFSDevices' 'false', but 'zfs' isn't installed or not in PATH."
+		echo "Please make 'zfs' available or disable ZFS support by setting 'cfgHideZFSDevices' to 'true'."
+		return 1
+	fi
+
+	# Get a list of pools and iterate through them
+	prevIFS="$IFS"
+	IFS=$'\n'
+	for entry in $(zpool list -o name,size -Hp); do
+		source=$(echo "$entry" | awk '{ print $1 }')
+		size=$(echo "$entry" | awk '{ print $2 }')
+		avail=$(zfs get avail -o value "$source" -Hp)
+
+		# Convert to KB as our render function expects that
+		size=$(expr $size \/ 1024)
+		avail=$(expr $avail \/ 1024)
+
+		renderOutput "$source" "$size" "$avail"
+	done
+	IFS="$prevIFS"
+}
+
+if [ "$cfgHideZFSDevices" != "true" ]; then
+	runZFS
+fi
