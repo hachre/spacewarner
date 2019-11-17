@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.10.20180525.1
+# Version: 1.11.20191117.1
 
 
 #
@@ -33,9 +33,12 @@ cfgMailUser="server_mail@dynaloop.com"
 cfgMailPassFile="/root/.mailpass"
 
 # General configuration options
+# Ignored means we will show the fs, but ignore its space stats and never raise an alarm
+# Hidden means we will not even show the fs (stronger than Ignore)
 cfgWarnBelow="10"
 cfgIgnoredDevices=""
 cfgHiddenDevices="/dev/loop*"
+cfgHideZFS="true"
 
 #
 # Code
@@ -71,6 +74,10 @@ function parameterChecks {
 			echo "Error: There were errors while reading the configuration file from '$cfgConfigLocation'."
 			exit 1
 		fi
+	fi
+	if [ -z "$cfgHideZFS" ]; then
+		echo "Error: Config value 'cfgHideZFS' has to be set to either 'true' or 'false'."
+		exit 1
 	fi
 	if [ -z "$cfgMailService" ]; then
 		echo "Error: Config value 'cfgMailService' has to be set to either 'msmtp' or 'ssmtp'."
@@ -228,7 +235,12 @@ prevIFS="$IFS"
 IFS="
 "
 
-for entry in $(df -x tmpfs -x devtmpfs --output=source,size,avail | tail -n+2); do
+dfTransform=""
+if [ "$cfgHideZFS" == "true" ]; then
+	dfTransform="-x zfs"
+fi
+
+for entry in $(df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail | tail -n+2); do
 	source=$(echo $entry | awk '{ print $1 }')
 	size=$(echo $entry | awk '{ print $2 }')
 	avail=$(echo $entry | awk '{ print $3 }')
