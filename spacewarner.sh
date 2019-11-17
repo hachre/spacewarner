@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.12.20191117.3
+# Version: 1.12.20191117.4
 
 
 #
@@ -53,10 +53,6 @@ function parameterChecks {
 	fi
 	if [ -z "$cfgHideZFSDevices" ]; then
 		echo "Error: Config value 'cfgHideZFSDevices' has to be set to either 'true' or 'false'."
-		exit 1
-	fi
-	if [ -z "$cfgHideLoopDevices" ]; then
-		echo "Error: Config value 'cfgHideLoopDevices' has to be set to either 'true' or 'false'."
 		exit 1
 	fi
 	if [ -z "$cfgMailService" ]; then
@@ -214,9 +210,6 @@ function contains {
 dfTransform="$cfgCustomDFParams"
 if [ "$cfgHideZFSDevices" == "true" ]; then
 	dfTransform="$dfTransform -x zfs"
-fi
-if [ "$cfgHideLoopDevices" == "true" ]; then
-	dfTransform="$dfTransform -x loop"
 fi
 
 tmpfile=$(mktemp)
