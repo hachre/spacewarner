@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.14.20191118.2
+# Version: 1.15.20191118.3
 
 
 #
@@ -164,6 +164,11 @@ if [ "$1" == "--mailtest" ] || [ "$1" == "--testmail" ]; then
 	mailtest
 fi
 
+function calc() {
+	#echo "DEBUG: Calculating '$*'" >&2
+	printf "%.2f\n" $(awk "BEGIN{print $*}");
+}
+
 function normalizeUnits {
 	# initial value is a KB value (as delivered by df)
 	value="$1"
@@ -184,10 +189,15 @@ function normalizeUnits {
 		unit="TB"
 	fi
 
-	if [ "$1" -ge "1024" ]; then
+# 	Bash can't deal with float, so we work around this in a crazy way.
+#	if [ "$value" -ge 1024 ]; then
+	calc $value-1024 | grep "-" 1>/dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		# $value is larger than 1024
 		let level=level+1
-		value=$(expr $value / 1024)
+		value=$(calc $value/1024)
 	else
+		# value is smaller than 1024
 		echo "$value $unit"
 		return
 	fi
