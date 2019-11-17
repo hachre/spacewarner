@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.13.20191117.6
+# Version: 1.13.20191117.7
 
 
 #
@@ -15,7 +15,6 @@
 #
 
 cfgConfigLocation="/etc/spacewarner.conf"
-cfgCustomWarnBelow=("/dev/mapper/cryptic,1" "/etc/lul,3")
 
 #
 # Code
