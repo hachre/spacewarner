@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.13.20191117.7
+# Version: 1.13.20191117.8
 
 
 #
