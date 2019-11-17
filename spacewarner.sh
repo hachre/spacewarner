@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.11.20191117.1
+# Version: 1.11.20191117.2
 
 
 #
@@ -217,7 +217,7 @@ function contains {
 		if [ "$needle" == "$entry" ]; then
 			return 0
 		fi
-		
+
 		# If haystack entry ends on *, match in reverse (needle '/dev/loop4' matches haystack entry '/dev/loop')
 		if [ "${entry:${#entry}-1:1}" == "*" ]; then
 			entry="${entry:0:-1}"
@@ -231,27 +231,29 @@ function contains {
 	return 1
 }
 
-prevIFS="$IFS"
-IFS="
-"
-
 dfTransform=""
 if [ "$cfgHideZFS" == "true" ]; then
 	dfTransform="-x zfs"
 fi
 
-for entry in $(df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail | tail -n+2); do
+tmpfile=$(mktemp)
+df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail | tail -n+2 > $tmpfile
+
+prevIFS="$IFS"
+IFS="
+"
+for entry in $(cat $tmpfile); do
 	source=$(echo $entry | awk '{ print $1 }')
 	size=$(echo $entry | awk '{ print $2 }')
 	avail=$(echo $entry | awk '{ print $3 }')
 
-  expr $size \* 1 1>/dev/null 2>&1
+	expr $size \* 1 1>/dev/null 2>&1
 	if [ "$?" != "0" ]; then
 		# Parsing of size didn't work (most likely because of spaces in the path) skip this entry
 		continue
 	fi
 
-	percentFree=$(expr $avail \* 100 / $size)	
+	percentFree=$(expr $avail \* 100 / $size)
 	displaySize=$(normalizeUnits $size)
 	displayAvail=$(normalizeUnits $avail)
 
@@ -273,5 +275,6 @@ for entry in $(df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail |
 		echo "$ok $source: ${percentFree}% free (size: $displaySize, free: $displayAvail)"
 	fi
 done
+rm $tmpfile
 
 IFS="$prevIFS"
