@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.12.20191117.5
+# Version: 1.13.20191117.6
 
 
 #
@@ -15,6 +15,7 @@
 #
 
 cfgConfigLocation="/etc/spacewarner.conf"
+cfgCustomWarnBelow=("/dev/mapper/cryptic,1" "/etc/lul,3")
 
 #
 # Code
@@ -212,6 +213,28 @@ function contains {
 	return 1
 }
 
+function getCustomWarnLevel() {
+	# If we don't have a cfgCustomWarnBelow variable, immediately return default warning threshold
+	if [ -z "$cfgCustomWarnBelow" ]; then
+		echo $cfgWarnBelow
+		return
+	fi
+
+	# Find the specified filesystem ($1) and output its corresponding warning threshold
+	for entry in ${cfgCustomWarnBelow[@]}; do
+		fs=$(echo $entry | cut -d ',' -f 1)
+		warnLevel=$(echo $entry | cut -d ',' -f 2)
+		if [ "$fs" == "$1" ]; then
+			echo "$warnLevel"
+			return
+		fi
+	done
+
+	# If we weren't able to find anything, return the default warn level
+	echo "$cfgWarnBelow"
+}
+
+# Prepare execution
 dfTransform="$cfgCustomDFParams"
 if [ "$cfgHideZFSDevices" == "true" ]; then
 	dfTransform="$dfTransform -x zfs"
@@ -220,6 +243,7 @@ fi
 tmpfile=$(mktemp)
 df -x tmpfs -x devtmpfs $dfTransform --output=source,size,avail | tail -n+2 > $tmpfile
 
+# Execute iteration through df to find filesystems to check
 prevIFS="$IFS"
 IFS="
 "
@@ -240,10 +264,12 @@ for entry in $(cat $tmpfile); do
 
 	ok=""
 
+	# Execute ignore & hide params
 	contains "$cfgHiddenDevices" "$source" && continue
 	contains "$cfgIgnoredDevices" "$source" && ok="[IGN]"
 
-	if [ "$percentFree" -le "$cfgWarnBelow"	] && [ -z "$ok" ]; then
+	# Decide whether this is an entry that has fallen below the threshold
+	if [ "$percentFree" -le $(getCustomWarnLevel "$source") ] && [ -z "$ok" ]; then
 		ok="[BAD]"
 		if [ "$1" == "--cron" ]; then
 			alarm $source $percentFree $size $avail
