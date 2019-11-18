@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.15.20191118.3
+# Version: 1.15.20191118.4
 
 
 #
@@ -133,6 +133,10 @@ function parameterChecks {
 	fi
 }
 parameterChecks $*
+opmode=""
+if [ "$1" == "--cron" ]; then
+	opmode="cron"
+fi
 
 function mail {
 	if [ "$cfgMailService" == "msmtp" ]; then
@@ -279,11 +283,11 @@ function renderOutput() {
 	# Decide whether this is an entry that has fallen below the threshold
 	if [ "$percentFree" -le $(getWarnLevel "$source") ] && [ -z "$ok" ]; then
 		ok="[FAIL]"
-		if [ "$1" == "--cron" ]; then
+		if [ "$opmode" == "cron" ]; then
 			alarm $source $percentFree $size $avail
 		fi
 	fi
-	if [ "$1" != "--cron" ]; then
+	if [ "$opmode" != "cron" ]; then
 		if [ -z "$ok" ]; then
 			ok="[ OK ]"
 		fi
