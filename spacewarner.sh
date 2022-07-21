@@ -7,8 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.16.20220721.3
-
+version="1.16.20220721.4"
 
 #
 # Configuration
@@ -21,14 +20,23 @@ cfgConfigLocation="/etc/spacewarner.conf"
 #
 
 function help {
-	echo "Usage: $0 [--help|--cron|--mailtest]"
+	echo "Usage: $0 [--help|--version|--cron|--mailtest]"
 	echo ""
 	echo "The default is to show a list of all your drives and whether they are considered in a good or bad state."
 	echo "Use '--cron' to disable any normal output and enable sending of warning mails instead."
 	echo ""
+	echo " --version:  shows version and exits"
 	echo " --cron:     Disables all normal output. Enables sending warning mails."
 	echo " --mailtest: Send a test mail."
 }
+
+function version {
+	echo "SpaceWarner $version"
+	exit 0
+}
+if [ "$1" == "--version" ]; then
+	version
+fi
 
 function parameterChecks {
 	if [ "$1" == "--help" ]; then
