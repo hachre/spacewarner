@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.15.20220721.2
+# Version: 1.16.20220721.3
 
 
 #
@@ -270,6 +270,7 @@ function renderOutput() {
 	source="$1"
 	size="$2"
 	avail="$3"
+	mount="$4"
 	ok=""
 
 	# Prepare human-readable output
@@ -279,7 +280,9 @@ function renderOutput() {
 
 	# Execute ignore & hide params
 	contains "$cfgHiddenDevices" "$source" && return
+	contains "$cfgHiddenMounts" "$mount" && return
 	contains "$cfgIgnoredDevices" "$source" && ok="[IGNR]"
+	contains "$cfgIgnoredMounts" "$mount" && ok="[IGNR]"
 
 	# Decide whether this is an entry that has fallen below the threshold
 	if [ "$percentFree" -le $(getWarnLevel "$source") ] && [ -z "$ok" ]; then
@@ -299,7 +302,7 @@ function renderOutput() {
 # Prepare execution
 dfTransform="$cfgCustomDFParams"
 tmpfile=$(mktemp)
-df -x tmpfs -x devtmpfs -x zfs $dfTransform --output=source,size,avail | tail -n+2 > $tmpfile
+df -x tmpfs -x devtmpfs -x zfs $dfTransform --output=source,size,avail,target | tail -n+2 > $tmpfile
 
 # Execute iteration through df to find filesystems to check
 prevIFS="$IFS"
@@ -309,6 +312,7 @@ for entry in $(cat $tmpfile); do
 	source=$(echo $entry | awk '{ print $1 }')
 	size=$(echo $entry | awk '{ print $2 }')
 	avail=$(echo $entry | awk '{ print $3 }')
+	mount=$(echo $entry | awk '{ print $4 }')
 
 	expr $size \* 1 1>/dev/null 2>&1
 	if [ "$?" != "0" ]; then
@@ -316,7 +320,7 @@ for entry in $(cat $tmpfile); do
 		continue
 	fi
 
-	renderOutput "$source" "$size" "$avail"
+	renderOutput "$source" "$size" "$avail" "$mount"
 done
 IFS="$prevIFS"
 rm "$tmpfile"
