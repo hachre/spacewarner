@@ -7,7 +7,7 @@
 # Description: Warns when disk space is dangerously low and sends notification mails.
 # License: MIT, Copyright (c) 2018 Harald Glatt
 # URL: https://github.com/hachre/spacewarner
-# Version: 1.15.20220721.1
+# Version: 1.15.20220721.2
 
 
 #
@@ -223,8 +223,9 @@ function contains {
 	needle="$2"
 
 	IFS=" "
+	set -f # disables * expansion, needed by the for below
 
-	for entry in "$haystack"; do
+	for entry in $haystack; do
 		# Attempt to match exactly. (needle '/dev/loop4' doesn't match against haystack entry '/dev/loop')
 		if [ "$needle" == "$entry" ]; then
 			return 0
